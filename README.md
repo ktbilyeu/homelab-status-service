@@ -124,7 +124,6 @@ The service runs on port 8000. Traefik labels are configured for multiple domain
 
 Live instances:
 - https://status.kadenbilyeu.com
-- https://status.bikatr7.com
 - https://status.kakusui.org
 - https://status.easytl.org
 - https://status.tetragroup.io

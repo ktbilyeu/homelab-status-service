@@ -16,7 +16,7 @@ class Settings(BaseSettings):
             "domains": "kadenbilyeu.com,bikatr7.com"
         },
         {
-            "name": "Personal Website (bikatr7.com)",
+            "name": "Personal Website (legacy alias)",
             "url": "https://bikatr7.com",
             "check_type": "http",
             "expected_status": "200",
@@ -37,7 +37,7 @@ class Settings(BaseSettings):
             "domains": "kadenbilyeu.com,bikatr7.com"
         },
         {
-            "name": "Git (git.bikatr7.com)",
+            "name": "Git (legacy alias)",
             "url": "https://git.bikatr7.com",
             "check_type": "http",
             "expected_status": "200",
