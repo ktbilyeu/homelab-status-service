@@ -93,7 +93,7 @@ async def calculate_uptime(db: AsyncSession, service_id: int, hours: int) -> flo
 
 @router.get("/services", response_model=List[ServiceStatus])
 async def get_services(domain: Optional[str] = None, db: AsyncSession = Depends(get_db)):
-    services = (await db.execute(select(Service))).scalars().all()
+    services = (await db.execute(select(Service).where(Service.enabled.is_(True)))).scalars().all()
 
     if domain:
         filtered = []
@@ -297,7 +297,7 @@ async def get_incidents(
 ):
     start_time = datetime.now(timezone.utc) - timedelta(days=days)
 
-    query = select(Incident, Service.name).join(Service)
+    query = select(Incident, Service.name).join(Service).where(Service.enabled.is_(True))
 
     if ongoing_only:
         query = query.where(Incident.status == "ongoing")

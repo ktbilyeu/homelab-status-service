@@ -61,7 +61,9 @@ directory is mounted at `/assets`, not backups or the repository.
 
 ## Configuration
 
-Edit services in `app/config.py`:
+The defaults in `app/config.py` monitor the current public domains. Override
+`SERVICES` with a JSON array in the environment or a private `.env` file to
+configure an instance without publishing its deployment-specific aliases:
 
 ```python
 SERVICES = [
@@ -79,6 +81,23 @@ Environment variables:
 - `DATABASE_URL` - Database connection (default: `sqlite+aiosqlite:///./status.db`)
 - `CHECK_INTERVAL` - Health check interval in seconds (default: 60)
 - `TIMEOUT` - HTTP timeout in seconds (default: 10)
+- `SERVICES` - Complete JSON array of service definitions, replacing the defaults
+- `CORS_ORIGINS` - JSON array of allowed browser origins
+- `CORS_ALLOW_ORIGIN_REGEX` - Regular expression for additional allowed origins
+
+Service URLs identify existing database records during startup. When moving
+configuration out of source, preserve each URL, check type, expected status and
+domain filter to retain the same monitor, history and incident behavior. Missing
+services are not automatically deleted from the database. The public overview
+continues to show each monitor's actual hostname.
+
+Set a service's optional `enabled` field to the JSON boolean `false` to retire a
+monitor without deleting its row, checks or incidents. Disabled monitors are
+excluded from health checks and the public overview, service list and incident
+list; their direct-ID history and statistics endpoints remain available. Omit
+`enabled` to preserve an existing record's state, or use `true` to enable it.
+New records default to enabled.
+The strings `"true"` and `"false"` are also accepted for older deployment files.
 
 ## Development
 
@@ -116,11 +135,32 @@ offline and stale states, timezone/DST conversion, and HTML escaping.
 
 ## Deployment
 
+Use Docker Compose 2.24 or newer:
+
 ```bash
-docker-compose up -d
+docker compose up -d --build
 ```
 
 The service runs on port 8000. Traefik labels are configured for multiple domains.
+Compose optionally reads the ignored project-root `.env` file. Its router rule
+and CORS origin list can be overridden with `STATUS_ROUTER_RULE` and
+`STATUS_CORS_ALLOW_ORIGINS`; these are separate from the application's CORS
+settings and should be kept consistent.
+
+For a private file outside the repository, set `STATUS_PRIVATE_ENV_FILE` in that
+file to its absolute path and pass the same file for Compose interpolation:
+
+```bash
+docker compose --env-file /private/status/runtime.env config --quiet
+docker compose --env-file /private/status/runtime.env up -d --build
+```
+
+Keep this file private and back it up before deployment. JSON arrays must occupy
+one line; single-quote dotenv values to preserve literal regular-expression
+backslashes and avoid interpolation. Capture an existing deployment's complete
+service list, CORS settings and Traefik labels before switching to the canonical
+defaults so compatibility hosts and domain filters continue to work. The Docker
+image does not copy private environment files.
 
 Live instances:
 - https://status.kadenbilyeu.com

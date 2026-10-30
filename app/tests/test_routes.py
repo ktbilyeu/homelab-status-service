@@ -7,6 +7,36 @@ from routes import calculate_uptime, router
 from database import Service, HealthCheck, Incident
 
 @pytest.mark.asyncio
+async def test_retired_monitor_hidden_but_history_retained(
+    test_db, test_service, test_service_down, test_health_check, test_incident
+):
+    from fastapi import FastAPI
+    from httpx import ASGITransport, AsyncClient
+    from database import get_db
+
+    test_service.enabled = False
+    await test_db.commit()
+    test_app = FastAPI()
+    test_app.include_router(router, prefix="/api")
+
+    async def override_get_db():
+        yield test_db
+
+    test_app.dependency_overrides[get_db] = override_get_db
+    async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as client:
+        services = await client.get("/api/services")
+        assert [s["id"] for s in services.json()] == [test_service_down.id]
+        incidents = await client.get("/api/incidents")
+        assert incidents.json() == []
+        overview = await client.get("/api/overview")
+        assert [s["id"] for s in overview.json()["services"]] == [test_service_down.id]
+        history = await client.get(f"/api/services/{test_service.id}/history")
+        assert [c["id"] for c in history.json()] == [test_health_check.id]
+        stats = await client.get(f"/api/services/{test_service.id}/stats")
+        assert stats.json()["total_checks"] == 1
+    assert await test_db.get(Incident, test_incident.id) is not None
+
+@pytest.mark.asyncio
 async def test_calculate_uptime_all_up(test_db, test_service):
     for i in range(10):
         check = HealthCheck(

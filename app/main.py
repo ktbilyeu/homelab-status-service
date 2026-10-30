@@ -57,26 +57,10 @@ app = FastAPI(
     openapi_url=None,
 )
 
-origins = [
-    "https://kadenbilyeu.com",
-    "https://status.kadenbilyeu.com",
-    "https://status.bikatr7.com",
-    "https://bikatr7.com",
-    "https://kakusui.org",
-    "https://status.kakusui.org",
-    "https://easytl.org",
-    "https://status.easytl.org",
-    "https://tetragroup.io",
-    "https://status.tetragroup.io",
-    "http://localhost:5173",
-    "https://kadenbilyeu-com.pages.dev",
-    "https://bikatr7.pages.dev"
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_origin_regex=r"^https://([a-z0-9-]+\.)?(kadenbilyeu-com\.pages\.dev|bikatr7\.pages\.dev|kadenbilyeu\.com|bikatr7\.com|kakusui\.org|easytl\.org|tetragroup\.io)$",
+    allow_origins=settings.CORS_ORIGINS,
+    allow_origin_regex=settings.CORS_ALLOW_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -132,6 +116,9 @@ async def initialize_services():
                     if existing.domains != service_config.get("domains"):
                         existing.domains = service_config.get("domains")
                         updated = True
+                    if "enabled" in service_config and existing.enabled != service_config["enabled"]:
+                        existing.enabled = service_config["enabled"]
+                        updated = True
 
                     if updated:
                         logger.info(f"Updated service: {service_config['name']}")
@@ -143,7 +130,7 @@ async def initialize_services():
                         check_type=service_config["check_type"],
                         expected_status=service_config["expected_status"],
                         domains=service_config.get("domains"),
-                        enabled=True
+                        enabled=service_config.get("enabled", True)
                     )
                     db.add(service)
                     logger.info(f"Added service: {service_config['name']}")

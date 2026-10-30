@@ -7,6 +7,42 @@ from database import Service, HealthCheck, Incident
 from monitor import run_health_checks
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("retire", [False, True])
+async def test_private_monitor_config_preserves_history(
+    test_db, test_service, test_health_check, test_incident, monkeypatch, retire
+):
+    import main
+    from config import Settings
+
+    service_id = test_service.id
+    check_id = test_health_check.id
+    incident_id = test_incident.id
+    test_service.enabled = retire
+    await test_db.commit()
+    monkeypatch.setattr(main, "settings", Settings(_env_file=None, SERVICES=[{
+        "name": "Configured service label",
+        "url": test_service.url,
+        "check_type": test_service.check_type,
+        "expected_status": test_service.expected_status,
+        "domains": "example.com,legacy.example.test",
+        **({"enabled": False} if retire else {}),
+    }]))
+
+    with patch("main.AsyncSessionLocal") as mock_session:
+        mock_session.return_value.__aenter__.return_value = test_db
+        await main.initialize_services()
+
+    services = (await test_db.execute(select(Service))).scalars().all()
+    assert len(services) == 1
+    assert services[0].id == service_id
+    assert services[0].enabled is False
+    assert services[0].name == "Configured service label"
+    assert services[0].domains == "example.com,legacy.example.test"
+    assert (await test_db.get(HealthCheck, check_id)).service_id == service_id
+    assert (await test_db.get(Incident, incident_id)).service_id == service_id
+    assert (await test_db.get(Incident, incident_id)).status == "ongoing"
+
+@pytest.mark.asyncio
 async def test_full_monitoring_cycle_service_up(test_db, test_service):
     mock_response = MagicMock()
     mock_response.status_code = 200
