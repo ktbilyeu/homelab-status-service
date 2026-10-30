@@ -7,7 +7,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from pathlib import Path
 
-from config import settings
+from config import settings, parse_service_enabled
 from database import init_db, get_db, AsyncSessionLocal, Service
 from monitor import run_health_checks, cleanup_old_checks
 from routes import router as api_router
@@ -93,6 +93,8 @@ async def initialize_services():
             logger.info(f"Processing {len(settings.SERVICES)} services from config")
 
             for i, service_config in enumerate(settings.SERVICES):
+                if "enabled" in service_config:
+                    service_config = {**service_config, "enabled": parse_service_enabled(service_config["enabled"])}
                 # Find existing service by URL (URL is the unique identifier)
                 result = await db.execute(
                     select(Service).where(Service.url == service_config["url"])

@@ -7,7 +7,7 @@ from database import Service, HealthCheck, Incident
 from monitor import run_health_checks
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("retire", [False, True])
+@pytest.mark.parametrize("retire", [False, True, "false"])
 async def test_private_monitor_config_preserves_history(
     test_db, test_service, test_health_check, test_incident, monkeypatch, retire
 ):
@@ -17,7 +17,7 @@ async def test_private_monitor_config_preserves_history(
     service_id = test_service.id
     check_id = test_health_check.id
     incident_id = test_incident.id
-    test_service.enabled = retire
+    test_service.enabled = bool(retire)
     await test_db.commit()
     monkeypatch.setattr(main, "settings", Settings(_env_file=None, SERVICES=[{
         "name": "Configured service label",
@@ -27,6 +27,9 @@ async def test_private_monitor_config_preserves_history(
         "domains": "example.com,legacy.example.test",
         **({"enabled": False} if retire else {}),
     }]))
+    if retire == "false":
+        # Existing integrations can inject a dict after Settings validation.
+        main.settings.SERVICES[0]["enabled"] = "false"
 
     with patch("main.AsyncSessionLocal") as mock_session:
         mock_session.return_value.__aenter__.return_value = test_db

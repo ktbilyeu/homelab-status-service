@@ -2,6 +2,15 @@ from pydantic_settings import BaseSettings
 from pydantic import field_validator
 from typing import List, Dict
 
+
+def parse_service_enabled(value):
+    if isinstance(value, str) and value.lower() in ("true", "false"):
+        value = value.lower() == "true"
+    if not isinstance(value, bool):
+        raise ValueError("Service enabled must be a boolean or true/false string")
+    return value
+
+
 class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite+aiosqlite:///./status.db"
     API_PREFIX: str = "/api"
@@ -47,6 +56,7 @@ class Settings(BaseSettings):
         {
             "name": "Kakusui API (api.kakusui.org)",
             "url": "https://api.kakusui.org",
+            "enabled": False,
             "check_type": "http",
             "expected_status": "200",
             "domains": "kadenbilyeu.com,kakusui.org,easytl.org"
@@ -80,10 +90,7 @@ class Settings(BaseSettings):
         for service in services:
             if "enabled" not in service:
                 continue
-            if isinstance(service["enabled"], str) and service["enabled"].lower() in ("true", "false"):
-                service["enabled"] = service["enabled"].lower() == "true"
-            if not isinstance(service["enabled"], bool):
-                raise ValueError("Service enabled must be a boolean or true/false string")
+            service["enabled"] = parse_service_enabled(service["enabled"])
         return services
 
     class Config:
