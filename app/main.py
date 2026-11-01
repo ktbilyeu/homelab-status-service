@@ -54,8 +54,6 @@ app = FastAPI(title="Homelab Status Service", lifespan=lifespan)
 origins = [
     "https://kadenbilyeu.com",
     "https://status.kadenbilyeu.com",
-    "https://status.bikatr7.com",
-    "https://bikatr7.com",
     "https://kakusui.org",
     "https://status.kakusui.org",
     "https://easytl.org",
@@ -64,13 +62,12 @@ origins = [
     "https://status.tetragroup.io",
     "http://localhost:5173",
     "https://kadenbilyeu-com.pages.dev",
-    "https://bikatr7.pages.dev"
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_origin_regex=r"^https://([a-z0-9-]+\.)?(kadenbilyeu-com\.pages\.dev|bikatr7\.pages\.dev|kadenbilyeu\.com|bikatr7\.com|kakusui\.org|easytl\.org|tetragroup\.io)$",
+    allow_origin_regex=r"^https://([a-z0-9-]+\.)?(kadenbilyeu-com\.pages\.dev|kadenbilyeu\.com|kakusui\.org|easytl\.org|tetragroup\.io)$",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
